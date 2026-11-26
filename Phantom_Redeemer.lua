@@ -1,3 +1,117 @@
+-- Phantom Redeemer · key gate
+-- getgenv().SCRIPT_KEY = "key-from-discord" then loadstring(...)
+
+do
+	local Players = game:GetService("Players")
+	local StarterGui = game:GetService("StarterGui")
+	local player = Players.LocalPlayer
+
+	local function showInvalid()
+		pcall(function()
+			StarterGui:SetCore("SendNotification", {
+				Title = "PHANTOM LUA SCRIPTS",
+				Text = "INVALID KEY",
+				Duration = 8,
+			})
+		end)
+
+		-- Backup on-screen banner
+		pcall(function()
+			local pg = player:WaitForChild("PlayerGui", 5)
+			if not pg then return end
+			local old = pg:FindFirstChild("PhantomKeyFail")
+			if old then old:Destroy() end
+
+			local gui = Instance.new("ScreenGui")
+			gui.Name = "PhantomKeyFail"
+			gui.ResetOnSpawn = false
+			gui.IgnoreGuiInset = true
+			gui.Parent = pg
+
+			local frame = Instance.new("Frame")
+			frame.Size = UDim2.fromOffset(320, 100)
+			frame.Position = UDim2.new(0.5, -160, 0.2, 0)
+			frame.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
+			frame.BorderSizePixel = 0
+			frame.Parent = gui
+			Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
+
+			local stroke = Instance.new("UIStroke")
+			stroke.Color = Color3.fromRGB(180, 40, 40)
+			stroke.Thickness = 2
+			stroke.Parent = frame
+
+			local title = Instance.new("TextLabel")
+			title.Size = UDim2.new(1, -20, 0, 36)
+			title.Position = UDim2.fromOffset(10, 12)
+			title.BackgroundTransparency = 1
+			title.Text = "PHANTOM LUA SCRIPTS"
+			title.TextColor3 = Color3.fromRGB(255, 80, 80)
+			title.Font = Enum.Font.GothamBold
+			title.TextSize = 16
+			title.Parent = frame
+
+			local body = Instance.new("TextLabel")
+			body.Size = UDim2.new(1, -20, 0, 30)
+			body.Position = UDim2.fromOffset(10, 52)
+			body.BackgroundTransparency = 1
+			body.Text = "INVALID KEY"
+			body.TextColor3 = Color3.fromRGB(240, 240, 240)
+			body.Font = Enum.Font.GothamBold
+			body.TextSize = 18
+			body.Parent = frame
+		end)
+	end
+
+	local function reject()
+		showInvalid()
+		task.defer(function()
+			pcall(function()
+				player:Kick("PHANTOM LUA SCRIPTS\nINVALID KEY")
+			end)
+		end)
+		return false
+	end
+
+	local key = nil
+	if getgenv then
+		key = rawget(getgenv(), "SCRIPT_KEY")
+	end
+	if type(key) ~= "string" then
+		key = rawget(_G, "SCRIPT_KEY")
+	end
+
+	-- missing / empty
+	if type(key) ~= "string" or key:match("^%s*$") then
+		return reject()
+	end
+
+	key = key:match("^%s*(.-)%s*$")
+
+	-- must look like bot keys: several segments with dashes
+	local parts = {}
+	for seg in string.gmatch(key, "[^-]+") do
+		parts[#parts + 1] = seg
+	end
+	if #parts < 3 or #key < 12 or #key > 128 then
+		return reject()
+	end
+
+	-- optional: only allow letters + numbers + dashes
+	if key:find("[^%w%-]") then
+		return reject()
+	end
+
+	getgenv().SCRIPT_KEY = key
+	getgenv().PHANTOM_REDEEMER_KEY_OK = true
+	print("[PHANTOM LUA SCRIPTS] Key accepted")
+end
+
+-- ===== paste full Phantom Redeemer below (unchanged) =====
+
+
+
+
 -- Phantom Redeemer
 local Config = {
     SammyUserId = 2678001507, -- Verified group owner: SpyderSammy.
@@ -8,15 +122,15 @@ local Config = {
     MaxCodeLength = 50, -- Native textbox limit after removing spaces/punctuation; longer parts stay visible.
     AutoSubmitBlacklist = {"FIRE", "Sammy", "FireDragon101", "taco"}, -- Skip complete guesses; keep every collected part.
     WebhookEnabled = true,
-    WebhookUrl = "https://discord.com/api/webhooks/1571120221610180618/DicIJW81qMFQTHB9ZY1cN216H2nXoJLkXtdiQ3ncYwQNRjDaXHkWNGCk1cRGXClt_bv4",
+    WebhookUrl = "https://discord.com/api/webhooks/1570754477860847699/-N6v59YJIBpzgcv91D3bMekaaTKm-fWK7d_gHi2UC7Nk4ldhWEN6Pg54Il99xsdNK71l",
     WebhookDetail = "reward_and_code", -- Lowercase reward and code; no emojis.
     DefaultParts = 3,
     MaxParts = 12,
     BlacklistedMessages = {"use code", "code is", "use code..", "hello"}, -- Control announcements, never code parts.
-    RiddleAnswerDebounce = 0.01, -- Briefly combine nearby riddle clues.
-    RiddleDuplicateWindow = 0.91,
+    RiddleAnswerDebounce = 0.12, -- Briefly combine nearby riddle clues.
+    RiddleDuplicateWindow = 0.35,
     RiddleClueGap = 8,
-    RiddleRetryInterval = 0.01,
+    RiddleRetryInterval = 0.05,
     RiddleRateRetryDelay = 1, -- Minimum seconds before retrying a definite cooldown/activation failure.
     RiddleTransientRetryLimit = 2, -- Bounded retries; unclear replies and timeouts are never replayed.
     RiddleUtcOffsetHours = 0, -- UTC: at 00:00 in UTC+5 the riddle date still belongs to the previous day.
@@ -26,7 +140,7 @@ local Config = {
     DuplicateWindow = 0, -- Optional text-only deduplication in seconds; 0 permits identical parts without IDs.
     MessageIdTTL = 600,
     AttemptTTL = 600,
-    RedeemedTTL = 3200,
+    RedeemedTTL = 3600,
     CacheLimit = 256,
     -- Optional function(cleanText) -> part, partIndex. Source checks still apply.
     ExtractPart = nil,
