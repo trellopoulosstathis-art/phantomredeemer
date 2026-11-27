@@ -1,10 +1,15 @@
--- Phantom Redeemer · key gate
--- getgenv().SCRIPT_KEY = "key-from-discord" then loadstring(...)
+-- Phantom Redeemer · online key gate
+-- getgenv().SCRIPT_KEY = "key" then loadstring
 
 do
 	local Players = game:GetService("Players")
 	local StarterGui = game:GetService("StarterGui")
+	local HttpService = game:GetService("HttpService")
 	local player = Players.LocalPlayer
+
+	-- YOUR public API (port must be open / reverse-proxied)
+	local API_URL = "https://xxxx.ngrok-free.app/chec"
+	local API_SECRET = "dfdfdffddfdfsdfsdfsefsdfsefsdf" -- same as config.json
 
 	local function showInvalid()
 		pcall(function()
@@ -14,20 +19,16 @@ do
 				Duration = 8,
 			})
 		end)
-
-		-- Backup on-screen banner
 		pcall(function()
-			local pg = player:WaitForChild("PlayerGui", 5)
+			local pg = player:FindFirstChildOfClass("PlayerGui") or player:WaitForChild("PlayerGui", 3)
 			if not pg then return end
 			local old = pg:FindFirstChild("PhantomKeyFail")
 			if old then old:Destroy() end
-
 			local gui = Instance.new("ScreenGui")
 			gui.Name = "PhantomKeyFail"
 			gui.ResetOnSpawn = false
 			gui.IgnoreGuiInset = true
 			gui.Parent = pg
-
 			local frame = Instance.new("Frame")
 			frame.Size = UDim2.fromOffset(320, 100)
 			frame.Position = UDim2.new(0.5, -160, 0.2, 0)
@@ -35,12 +36,6 @@ do
 			frame.BorderSizePixel = 0
 			frame.Parent = gui
 			Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 12)
-
-			local stroke = Instance.new("UIStroke")
-			stroke.Color = Color3.fromRGB(180, 40, 40)
-			stroke.Thickness = 2
-			stroke.Parent = frame
-
 			local title = Instance.new("TextLabel")
 			title.Size = UDim2.new(1, -20, 0, 36)
 			title.Position = UDim2.fromOffset(10, 12)
@@ -50,7 +45,6 @@ do
 			title.Font = Enum.Font.GothamBold
 			title.TextSize = 16
 			title.Parent = frame
-
 			local body = Instance.new("TextLabel")
 			body.Size = UDim2.new(1, -20, 0, 30)
 			body.Position = UDim2.fromOffset(10, 52)
@@ -73,32 +67,28 @@ do
 		return false
 	end
 
-	local key = nil
-	if getgenv then
-		key = rawget(getgenv(), "SCRIPT_KEY")
-	end
-	if type(key) ~= "string" then
-		key = rawget(_G, "SCRIPT_KEY")
-	end
-
-	-- missing / empty
+	local key = getgenv and rawget(getgenv(), "SCRIPT_KEY") or rawget(_G, "SCRIPT_KEY")
 	if type(key) ~= "string" or key:match("^%s*$") then
 		return reject()
 	end
-
 	key = key:match("^%s*(.-)%s*$")
 
-	-- must look like bot keys: several segments with dashes
-	local parts = {}
-	for seg in string.gmatch(key, "[^-]+") do
-		parts[#parts + 1] = seg
-	end
-	if #parts < 3 or #key < 12 or #key > 128 then
+	local url = API_URL
+		.. "?key=" .. HttpService:UrlEncode(key)
+		.. "&secret=" .. HttpService:UrlEncode(API_SECRET)
+
+	local ok, body = pcall(function()
+		return game:HttpGet(url)
+	end)
+	if not ok or type(body) ~= "string" or body == "" then
 		return reject()
 	end
 
-	-- optional: only allow letters + numbers + dashes
-	if key:find("[^%w%-]") then
+	local decoded = nil
+	pcall(function()
+		decoded = HttpService:JSONDecode(body)
+	end)
+	if type(decoded) ~= "table" or decoded.ok ~= true then
 		return reject()
 	end
 
@@ -107,7 +97,7 @@ do
 	print("[PHANTOM LUA SCRIPTS] Key accepted")
 end
 
--- ===== paste full Phantom Redeemer below (unchanged) =====
+-- ===== full Phantom Redeemer below =====
 
 
 
